@@ -325,7 +325,6 @@ public class ExpressionTypeDeterminator {
 	
 	public boolean isNumber(Expression expression) {
 			return isNumber(getType(expression));
-		}
 	}
 	
 	// Transform type
@@ -335,7 +334,7 @@ public class ExpressionTypeDeterminator {
 			// During editing the type of the reference expression can be null
 			return ExpressionType.ERROR;
 		} 
-		if (type instanceof VoidTypeDefinition) {
+		if(type instanceof VoidTypeDefinition) {
 			return ExpressionType.VOID;
 		}
 		if (type instanceof BooleanTypeDefinition) {
