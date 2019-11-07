@@ -17,7 +17,7 @@ import hu.bme.mit.gamma.expression.model.TypeReference;
 
 public class ExpressionLanguageValidatorUtil {
 	public static TypeDefinition findAccessExpressionTypeDefinition(AccessExpression accessExpression) {
-		Declaration instanceDeclaration = findAccessExpressionInstanceDeclaration(accessExpression);
+		Declaration instanceDeclaration = accessExpression.getDeclaration();
 		Type instanceDeclarationType = instanceDeclaration.getType();
 		return findTypeDefinitionOfType(instanceDeclarationType);
 	}
@@ -30,15 +30,6 @@ public class ExpressionLanguageValidatorUtil {
 			TypeDeclaration td = tr.getReference();
 			return findTypeDefinitionOfType(td.getType());
 		}
-	}
-	
-	public static Declaration findAccessExpressionInstanceDeclaration(AccessExpression accessExpression)/* throws Exception*/ {
-		if(accessExpression.getOperand() instanceof ReferenceExpression) {
-			ReferenceExpression ref = (ReferenceExpression)accessExpression.getOperand();
-			return ref.getDeclaration();
-		}
-		//TODO implement for Literal Expressions (e.g. IntegerRange)
-		throw new IllegalArgumentException("Not implemented feature - the operand of the AccessExpression is: " + accessExpression.getOperand().toString() );
 	}
 	
 	

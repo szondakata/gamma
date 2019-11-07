@@ -64,16 +64,35 @@ MultilineStatement returns ActionModel::Statement:
 	ChoiceStatement
 ;
 
-VariableDeclarationStatement returns ActionModel::VariableDeclarationStatement:
-	variableDeclaration = VariableDeclaration
+VariableDeclarationStatement returns ActionModel::Statement:
+	{ActionModel::VariableDeclarationStatement} variableDeclaration = VariableDeclaration
 ;
 
-ConstantDeclarationStatement returns ActionModel::ConstantDeclarationStatement:
-	constantDeclaration = ConstantDeclaration
+ConstantDeclarationStatement returns ActionModel::Statement:
+	{ActionModel::ConstantDeclarationStatement} constantDeclaration = ConstantDeclaration
 ;
 
-ExpressionStatement returns ActionModel::ExpressionStatement:
-	expression=Expression
+ExpressionStatement returns ActionModel::Statement:
+	{ActionModel::ExpressionStatement} expression=Expression
+;
+
+AssignmentStatement returns ActionModel::Statement:
+	{ActionModel::AssignmentStatement} lhs=AssignableAccessExpression ':=' rhs=Expression
+;
+
+AssignableAccessExpression returns ConstraintModel::ReferenceExpression:
+	ReferenceExpression |
+	ArrayAccessExpression |
+	RecordAccessExpression
+;
+
+ReturnStatement returns ActionModel::Statement:
+	{ActionModel::ReturnStatement} 'return' (expression=Expression)?
+;
+
+BreakStatement returns ActionModel::Statement:
+	{ActionModel::BreakStatement}
+	'break'
 ;
 
 IfBranch returns ActionModel::Branch:
@@ -128,22 +147,9 @@ ForStatement returns ActionModel::ForStatement:
 	(=> 'then' then=Action)?
 ;
 
-ReturnStatement returns ActionModel::ReturnStatement:
-	{ActionModel::ReturnStatement} 'return' (expression=Expression)?
-;
-
-BreakStatement returns ActionModel::BreakStatement:
-	{ActionModel::BreakStatement}
-	'break'
-;
-
 ChoiceStatement returns ActionModel::ChoiceStatement:
 	'choice'
 	'{'
 	('branch' branches+=ChoiceBranch ('branch' branches+=ChoiceBranch)*)
 	'}'
-;
-
-AssignmentStatement returns ActionModel::AssignmentStatement:
-	lhs=ReferenceExpression ':=' rhs=Expression
 ;

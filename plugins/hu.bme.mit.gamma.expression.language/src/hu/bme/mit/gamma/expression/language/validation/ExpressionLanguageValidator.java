@@ -114,9 +114,8 @@ public class ExpressionLanguageValidator extends AbstractExpressionLanguageValid
 	public void checkFunctionAccessExpression(FunctionAccessExpression functionAccessExpression) {
 		List<Expression> arguments = functionAccessExpression.getArguments();
 		
-		ReferenceExpression ref = (ReferenceExpression)functionAccessExpression.getOperand();
-		if(ref.getDeclaration() instanceof FunctionDeclaration) {
-			List<ParameterDeclaration> parameters = ((FunctionDeclaration)(ref).getDeclaration()).getParameterDeclarations();
+		if(functionAccessExpression.getDeclaration() instanceof FunctionDeclaration) {
+			List<ParameterDeclaration> parameters = ((FunctionDeclaration)functionAccessExpression.getDeclaration()).getParameterDeclarations();
 			if(arguments.size() != parameters.size()) {
 				error("The number of arguments does not match the number of declared parameters for the function!", 
 						ExpressionModelPackage.Literals.ARGUMENTED_ELEMENT__ARGUMENTS);
@@ -132,7 +131,7 @@ public class ExpressionLanguageValidator extends AbstractExpressionLanguageValid
 			}
 		}else {
 			error("The referenced object is not a function declaration!",
-					ExpressionModelPackage.Literals.ACCESS_EXPRESSION__OPERAND);
+					ExpressionModelPackage.Literals.REFERENCE_EXPRESSION__DECLARATION);
 		}
 	}
 	
@@ -145,10 +144,10 @@ public class ExpressionLanguageValidator extends AbstractExpressionLanguageValid
 	
 	@Check
 	public void checkSelectExpression(SelectExpression expression){
-		if(!((typeDeterminator.getType(expression.getOperand()) == ExpressionType.ARRAY) ||
-				(typeDeterminator.getType(expression.getOperand()) == ExpressionType.ENUMERATION) ||
-				(typeDeterminator.getType(expression.getOperand()) == ExpressionType.INTEGER_RANGE))) {
-			error("Select expression can only be applied to enumerable expressions (array, integer range and enumeration)!" + typeDeterminator.getType(expression.getOperand()).toString(), null);
+		if(!((typeDeterminator.transform(expression.getDeclaration().getType()) == ExpressionType.ARRAY) ||
+				(typeDeterminator.transform(expression.getDeclaration().getType()) == ExpressionType.ENUMERATION) ||
+				(typeDeterminator.transform(expression.getDeclaration().getType()) == ExpressionType.INTEGER_RANGE))) {
+			error("Select expression can only be applied to enumerable expressions (array, integer range and enumeration)!" + typeDeterminator.transform(expression.getDeclaration().getType()).toString(), null);
 		}
 	}
 	

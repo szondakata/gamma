@@ -446,7 +446,7 @@ Event returns InterfaceModel::Event:
 // Overriding it for the sake of EventParameterReferenceExpression
 @Override 
 PrimaryExpression returns ConstraintModel::Expression:
-	LiteralExpression | ReferenceExpression | EventParameterReferenceExpression | '(' Expression ')'
+	LiteralExpression | DeclarationAccess | EventParameterReferenceExpression | '(' Expression ')'
 ;
 
 EventParameterReferenceExpression returns InterfaceModel::EventParameterReferenceExpression:
@@ -471,6 +471,7 @@ InlineStatement returns ActionModel::Statement:
 	RaiseEventAction |
 	SetTimeoutAction |
 	DeactivateTimeoutAction 
+	
 	)
 	
 	';'

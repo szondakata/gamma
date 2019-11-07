@@ -33,13 +33,19 @@ import hu.bme.mit.gamma.action.model.ReturnStatement;
 import hu.bme.mit.gamma.action.model.SwitchStatement;
 import hu.bme.mit.gamma.action.model.VariableDeclarationStatement;
 import hu.bme.mit.gamma.expression.language.validation.ExpressionType;
+import hu.bme.mit.gamma.expression.model.ArrayAccessExpression;
 import hu.bme.mit.gamma.expression.model.EnumerationLiteralExpression;
 import hu.bme.mit.gamma.expression.model.EnumerationTypeDefinition;
 import hu.bme.mit.gamma.expression.model.ExpressionModelPackage;
+import hu.bme.mit.gamma.expression.model.FunctionAccessExpression;
+import hu.bme.mit.gamma.expression.model.LambdaDeclaration;
 import hu.bme.mit.gamma.expression.model.NamedElement;
+import hu.bme.mit.gamma.expression.model.RecordAccessExpression;
 import hu.bme.mit.gamma.expression.model.ReferenceExpression;
+import hu.bme.mit.gamma.expression.model.SelectExpression;
 import hu.bme.mit.gamma.expression.model.Type;
 import hu.bme.mit.gamma.expression.model.TypeReference;
+import hu.bme.mit.gamma.expression.model.ValueDeclaration;
 import hu.bme.mit.gamma.expression.model.VariableDeclaration;
 
 /**
@@ -60,6 +66,7 @@ public class ActionLanguageValidator extends AbstractActionLanguageValidator {
 		}
 	}
 	
+	//TODO remove
 	@Check
 	public void checkUnsupportedActions(Action action) {
 		if (action instanceof Block ||
@@ -90,16 +97,38 @@ public class ActionLanguageValidator extends AbstractActionLanguageValidator {
 	@Check
 	public void checkAssignmentActions(AssignmentStatement assignment) {
 		ReferenceExpression reference = (ReferenceExpression) assignment.getLhs();
-		// Constant
+		//Constant
 		if (!(reference.getDeclaration() instanceof VariableDeclaration)) {
 			error("Values can be assigned only to variables.", ActionModelPackage.Literals.ASSIGNMENT_STATEMENT__LHS);
 		}
-		// Other assignment type checking
-		if (reference.getDeclaration() instanceof VariableDeclaration) {
+		//Variable
+		ExpressionType rightHandSideExpressionType = typeDeterminator.getType(assignment.getRhs());
+		if (reference instanceof ArrayAccessExpression) {
+			ExpressionType leftHandSideExpressionType = typeDeterminator.getType((ArrayAccessExpression)reference);
+			if (!(leftHandSideExpressionType == rightHandSideExpressionType)) {
+				error("The types of the variable declaration and the right hand side expression are not the same: " +
+						leftHandSideExpressionType.toString().toLowerCase() + " and " +
+						rightHandSideExpressionType.toString().toLowerCase() + ".",
+						ActionModelPackage.Literals.ASSIGNMENT_STATEMENT__LHS);
+			}
+		} else if (reference instanceof RecordAccessExpression) {
+			ExpressionType leftHandSideExpressionType = typeDeterminator.getType((RecordAccessExpression)reference);
+			if (!(leftHandSideExpressionType == rightHandSideExpressionType)) {
+				error("The types of the variable declaration and the right hand side expression are not the same: " +
+						leftHandSideExpressionType.toString().toLowerCase() + " and " +
+						rightHandSideExpressionType.toString().toLowerCase() + ".",
+						ActionModelPackage.Literals.ASSIGNMENT_STATEMENT__LHS);
+			}
+		} else if (reference instanceof SelectExpression){
+			error("The left hand side of the assignment must be an assignable variable. It is currently a non-deterministic selection from an enumerable type.",
+					ActionModelPackage.Literals.ASSIGNMENT_STATEMENT__LHS);
+		} else if (reference instanceof FunctionAccessExpression) {
+			error("The left hand side of the assignment must be an assignable variable. It is currently a function call.",
+					ActionModelPackage.Literals.ASSIGNMENT_STATEMENT__LHS);
+		} else {
 			VariableDeclaration variableDeclaration = (VariableDeclaration) reference.getDeclaration();
 			try {
 				Type variableDeclarationType = variableDeclaration.getType();
-				ExpressionType rightHandSideExpressionType = typeDeterminator.getType(assignment.getRhs());
 				if (!typeDeterminator.equals(variableDeclarationType, rightHandSideExpressionType)) {
 					error("The types of the variable declaration and the right hand side expression are not the same: " +
 							typeDeterminator.transform(variableDeclarationType).toString().toLowerCase() + " and " +
@@ -148,6 +177,39 @@ public class ActionLanguageValidator extends AbstractActionLanguageValidator {
 					+ ") does not match the declared type of the procedure (" 
 					+ typeDeterminator.transform(containingProcedureType).toString().toLowerCase() + ").",
 					null);	//Underlines the whole line
+		}
+	}
+	
+	@Check
+	public void checkForStatement(ForStatement fs) {
+		//TODO Parameter matches the range element type
+		//TODO Range is a collection
+		
+	}
+	
+	//Check function access expression redefined, because of the new element ProcedureDeclaration
+	@Check
+	public void checkFunctionAccessExpression(FunctionAccessExpression expression) {
+		if (expression.getDeclaration() instanceof LambdaDeclaration) {
+			error("Lambda declarations are currently not supported!",
+					null);
+		}
+		else if (expression.getDeclaration() instanceof ProcedureDeclaration) {
+			/*if(expression.eContainer() instanceof ValueDeclaration) {	//It should be guaranteed that it is in an action, otherwise it is implemented
+				return;
+			}*/
+			if(!(expression.eContainer() instanceof Action)) {
+				error("This function access expression is currently not supported. It is probably not contained in an action or it is part of a complex expression.",
+						null);
+			}
+			if(expression.eContainer() instanceof SwitchStatement) {
+				error("Function access expressions as control variables of switch statements are currently not supported.",
+						null);
+			}
+			if(expression.eContainer() instanceof ForStatement) {
+				error("Function access expressions as range variables of for statements are currently not supported.",
+						null);
+			}
 		}
 	}
 	

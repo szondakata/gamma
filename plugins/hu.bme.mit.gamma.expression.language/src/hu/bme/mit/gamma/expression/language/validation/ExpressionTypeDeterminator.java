@@ -82,9 +82,6 @@ public class ExpressionTypeDeterminator {
 		if (expression instanceof ArrayLiteralExpression) {
 			return getType((ArrayLiteralExpression) expression);
 		}
-		if (expression instanceof ReferenceExpression) {
-			return getType((ReferenceExpression) expression);
-		}
 		if (expression instanceof ElseExpression) {
 			return getType((ElseExpression) expression);
 		}
@@ -128,7 +125,7 @@ public class ExpressionTypeDeterminator {
 			return transform(arrayTypeDefinition.getElementType());
 		}
 		if (expression instanceof FunctionAccessExpression) {
-			return transform(((ReferenceExpression)((FunctionAccessExpression) expression).getOperand()).getDeclaration().getType());
+			return transform(((FunctionAccessExpression) expression).getDeclaration().getType());
 			//What if it goes through a type reference / declaration?
 		}
 		if (expression instanceof RecordAccessExpression) {
@@ -152,11 +149,14 @@ public class ExpressionTypeDeterminator {
 			}else if (typeDefinition instanceof EnumerationTypeDefinition) {
 				return ExpressionType.ENUMERATION;
 			}else {
-				throw new IllegalArgumentException("The type of the operand  of the select expression is not an enumerable type: " + selectExpression.getOperand());
+				throw new IllegalArgumentException("The type of the operand  of the select expression is not an enumerable type: " + selectExpression.getDeclaration());
 			}
 		}
 		if (expression instanceof IfThenElseExpression) {
 			return getType(((IfThenElseExpression) expression).getThen());
+		}
+		if (expression instanceof ReferenceExpression) {
+			return getType((ReferenceExpression) expression);
 		}
 		if (expression == null) {
 			return ExpressionType.VOID;
@@ -324,12 +324,6 @@ public class ExpressionTypeDeterminator {
 	}
 	
 	public boolean isNumber(Expression expression) {
-		if (expression instanceof ReferenceExpression) {
-			ReferenceExpression referenceExpression = (ReferenceExpression) expression;
-			Declaration declaration = referenceExpression.getDeclaration();
-			Type declarationType = declaration.getType();
-			return isNumber(transform(declarationType));
-		}else {
 			return isNumber(getType(expression));
 		}
 	}
@@ -341,7 +335,7 @@ public class ExpressionTypeDeterminator {
 			// During editing the type of the reference expression can be null
 			return ExpressionType.ERROR;
 		} 
-		if(type instanceof VoidTypeDefinition) {
+		if (type instanceof VoidTypeDefinition) {
 			return ExpressionType.VOID;
 		}
 		if (type instanceof BooleanTypeDefinition) {
