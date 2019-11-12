@@ -33,6 +33,7 @@ import hu.bme.mit.gamma.action.model.ReturnStatement;
 import hu.bme.mit.gamma.action.model.SwitchStatement;
 import hu.bme.mit.gamma.action.model.VariableDeclarationStatement;
 import hu.bme.mit.gamma.expression.language.validation.ExpressionType;
+import hu.bme.mit.gamma.expression.model.AccessExpression;
 import hu.bme.mit.gamma.expression.model.ArrayAccessExpression;
 import hu.bme.mit.gamma.expression.model.EnumerationLiteralExpression;
 import hu.bme.mit.gamma.expression.model.EnumerationTypeDefinition;
@@ -160,6 +161,11 @@ public class ActionLanguageValidator extends AbstractActionLanguageValidator {
 				// There is a type error on a lower level, no need to display the error message on this level too
 			}
 		}
+		
+		//Other checks
+		if((assignment.getLhs() instanceof AccessExpression) && (assignment.getRhs() instanceof AccessExpression)) {
+			error ("Assignment of the result of an access expression to the result of an access expression is currently not supported.", null);
+		}
 	}
 
 	
@@ -187,6 +193,14 @@ public class ActionLanguageValidator extends AbstractActionLanguageValidator {
 		
 	}
 	
+	//Access expression transformations are implemented as action transformations
+	@Check
+	public void checkAccessExpression(AccessExpression expression) {
+		if (!(expression.eContainer() instanceof Action)) {
+			error("This access expression is currently not supported. It is probably not contained in an action or it is part of a complex expression.",
+					null);
+		}
+	}
 	//Check function access expression redefined, because of the new element ProcedureDeclaration
 	@Check
 	public void checkFunctionAccessExpression(FunctionAccessExpression expression) {
@@ -198,15 +212,11 @@ public class ActionLanguageValidator extends AbstractActionLanguageValidator {
 			/*if(expression.eContainer() instanceof ValueDeclaration) {	//It should be guaranteed that it is in an action, otherwise it is implemented
 				return;
 			}*/
-			if(!(expression.eContainer() instanceof Action)) {
-				error("This function access expression is currently not supported. It is probably not contained in an action or it is part of a complex expression.",
-						null);
-			}
-			if(expression.eContainer() instanceof SwitchStatement) {
+			if (expression.eContainer() instanceof SwitchStatement) {
 				error("Function access expressions as control variables of switch statements are currently not supported.",
 						null);
 			}
-			if(expression.eContainer() instanceof ForStatement) {
+			if (expression.eContainer() instanceof ForStatement) {
 				error("Function access expressions as range variables of for statements are currently not supported.",
 						null);
 			}
