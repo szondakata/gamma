@@ -37,8 +37,8 @@ Block returns ActionModel::Block:
 ;
 
 Statement returns ActionModel::Statement:
-	InlineStatement | 
-	MultilineStatement
+	MultilineStatement | 
+	InlineStatement 
 ;
 
 InlineStatement returns ActionModel::Statement:

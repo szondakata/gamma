@@ -23,6 +23,7 @@ import hu.bme.mit.gamma.expression.model.ElseExpression;
 import hu.bme.mit.gamma.expression.model.EnumerationLiteralExpression;
 import hu.bme.mit.gamma.expression.model.EnumerationTypeDefinition;
 import hu.bme.mit.gamma.expression.model.Expression;
+import hu.bme.mit.gamma.expression.model.ExpressionModelFactory;
 import hu.bme.mit.gamma.expression.model.FieldDeclaration;
 import hu.bme.mit.gamma.expression.model.FunctionAccessExpression;
 import hu.bme.mit.gamma.expression.model.IfThenElseExpression;
@@ -370,6 +371,47 @@ public class ExpressionTypeDeterminator {
 		throw new IllegalArgumentException("Not known type: " + type);
 	}
 	
+	// Transform expressionType
+	
+	public Type transformExpressionType(ExpressionType expressionType) {
+		if (expressionType == ExpressionType.ERROR) {
+			// During editing the type of the reference expression can be null
+			return null;
+		} 
+		if(expressionType == ExpressionType.VOID) {
+			return ExpressionModelFactory.eINSTANCE.createVoidTypeDefinition();
+		}
+		if (expressionType == ExpressionType.BOOLEAN) {
+			return ExpressionModelFactory.eINSTANCE.createBooleanTypeDefinition();
+		}
+		if (expressionType == ExpressionType.INTEGER) {
+			return ExpressionModelFactory.eINSTANCE.createIntegerTypeDefinition();
+		}
+		if (expressionType == ExpressionType.RATIONAL) {
+			return ExpressionModelFactory.eINSTANCE.createRationalTypeDefinition();
+		}
+		if (expressionType == ExpressionType.DECIMAL) {
+			return ExpressionModelFactory.eINSTANCE.createDecimalTypeDefinition();
+		}
+		if (expressionType == ExpressionType.ENUMERATION) {
+			// The fields are not initialized
+			return ExpressionModelFactory.eINSTANCE.createEnumerationTypeDefinition();
+		}
+		if (expressionType == ExpressionType.ARRAY) {
+			// The fields are not initialized
+			return ExpressionModelFactory.eINSTANCE.createArrayTypeDefinition();
+		}
+		if (expressionType == ExpressionType.INTEGER_RANGE) {
+			// The fields are not initialized
+			return ExpressionModelFactory.eINSTANCE.createIntegerRangeTypeDefinition();
+		}
+		if (expressionType == ExpressionType.RECORD) {
+			// The fields are not initialized
+			return ExpressionModelFactory.eINSTANCE.createRecordTypeDefinition();
+		}
+		throw new IllegalArgumentException("Not known type: " + expressionType);
+	}
+	
 	// Type equal (in case of complex types, only shallow comparison)
 	
 	public boolean equals(Type type, ExpressionType expressionType) {
@@ -384,5 +426,4 @@ public class ExpressionTypeDeterminator {
 			type instanceof VoidTypeDefinition && expressionType == ExpressionType.VOID ||
 			type instanceof TypeReference && equals(((TypeReference) type).getReference().getType(), expressionType);
 	}
-	
 }
