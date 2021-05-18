@@ -1,4 +1,4 @@
-module hu.bme.mit.gamma.setup.cleaners.languages.CleanPropertyLanguage
+module hu.bme.mit.gamma.setup.cleaners.languages.CleanInvariantsLanguage
 
 import org.eclipse.xtext.xtext.generator.*
 import org.eclipse.xtext.xtext.generator.model.project.*
@@ -15,6 +15,6 @@ Workflow {
     }
 	
 	component = org.eclipse.emf.mwe.utils.DirectoryCleaner {
-        directory = "../core/hu.bme.mit.gamma.property.language/src-gen"
+        directory = "../core/hu.bme.mit.gamma.invariants.language/src-gen"
     }
 }

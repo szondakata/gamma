@@ -6,4 +6,5 @@ Workflow {
     component = @cleaners.languages.CleanStatechartLanguage {}
     component = @cleaners.languages.CleanTraceLanguage {}
     component = @cleaners.languages.CleanGenmodelLanguage {}
+    component = @cleaners.languages.CleanInvariantsLanguage {}
 }
