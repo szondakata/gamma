@@ -6,7 +6,8 @@
     usedGenPackages="../../hu.bme.mit.gamma.action.model/model/action.genmodel#//model ../../hu.bme.mit.gamma.expression.model/model/expression.genmodel#//model ../../hu.bme.mit.gamma.statechart.model/model/statechart.genmodel#//composite ../../hu.bme.mit.gamma.statechart.model/model/statechart.genmodel#//interface ../../hu.bme.mit.gamma.statechart.model/model/statechart.genmodel#//statechart"
     operationReflection="true" importOrganizing="true">
   <foreignModel>invariants.ecore</foreignModel>
-  <genPackages prefix="Invariants" disposableProviderFactory="true" ecorePackage="invariants.ecore#/">
+  <genPackages prefix="Invariants" basePackage="hu.bme.mit.gamma.invariants" disposableProviderFactory="true"
+      ecorePackage="invariants.ecore#/">
     <genClasses ecoreClass="invariants.ecore#//XstsArgMetrics">
       <genFeatures property="None" children="true" createChild="true" ecoreFeature="ecore:EReference invariants.ecore#//XstsArgMetrics/keyValuePairs"/>
     </genClasses>

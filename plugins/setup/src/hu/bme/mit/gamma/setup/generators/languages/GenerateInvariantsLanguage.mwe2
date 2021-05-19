@@ -28,13 +28,13 @@ Workflow {
     }
 	
 	component = org.eclipse.emf.mwe.utils.DirectoryCleaner {
-        directory = "../core/hu.bme.mit.gamma..language/src-gen"
+        directory = "../core/hu.bme.mit.gamma.invariants.language/src-gen"
     }
 	
 	component = XtextGenerator {
 		configuration = {
 			project = StandardProjectConfig {
-				baseName = "hu.bme.mit.gamma..language"
+				baseName = "hu.bme.mit.gamma.invariants.language"
 				rootPath = rootPath
 				eclipsePlugin = {
 					enabled = true
@@ -49,8 +49,8 @@ Workflow {
 		}
 		language = StandardLanguage {
 			referencedResource = "platform:/resource/hu.bme.mit.gamma.statechart.language/src/hu/bme/mit/gamma/statechart/language/StatechartLanguage.xtext"
-			name = "hu.bme.mit.gamma..language.Language"
-			fileExtensions = "gpd"
+			name = "hu.bme.mit.gamma.invariants.language.Language"
+			fileExtensions = "ginv"
 			//referencedResource = "platform:/resource/hu.bme.mit.gamma.trace.model/model/trace.genmodel"
 			
 			fragment = ecore2xtext.Ecore2XtextValueConverterServiceFragment2 auto-inject {}

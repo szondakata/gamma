@@ -10,7 +10,7 @@
       <!-- @generated invariants -->
       <package
             uri="http://www.mit.bme.hu/gamma/invariants/Model/Invariants"
-            class="invariants.InvariantsPackage"
+            class="hu.bme.mit.gamma.invariants.invariants.InvariantsPackage"
             genModel="model/invariants.genmodel"/>
    </extension>
 
