@@ -10,11 +10,8 @@
  ********************************************************************************/
 package hu.bme.mit.gamma.lowlevel.xsts.transformation.optimizer
 
-import hu.bme.mit.gamma.action.model.VariableDeclarationStatement
-import hu.bme.mit.gamma.expression.model.DirectReferenceExpression
 import hu.bme.mit.gamma.expression.model.ExpressionModelFactory
 import hu.bme.mit.gamma.expression.model.VariableDeclaration
-import hu.bme.mit.gamma.expression.util.ExpressionUtil
 import hu.bme.mit.gamma.util.GammaEcoreUtil
 import hu.bme.mit.gamma.xsts.model.Action
 import hu.bme.mit.gamma.xsts.model.AssignmentAction
@@ -22,11 +19,15 @@ import hu.bme.mit.gamma.xsts.model.AssumeAction
 import hu.bme.mit.gamma.xsts.model.AtomicAction
 import hu.bme.mit.gamma.xsts.model.CompositeAction
 import hu.bme.mit.gamma.xsts.model.EmptyAction
+import hu.bme.mit.gamma.xsts.model.LoopAction
+import hu.bme.mit.gamma.xsts.model.MultiaryAction
 import hu.bme.mit.gamma.xsts.model.NonDeterministicAction
 import hu.bme.mit.gamma.xsts.model.OrthogonalAction
 import hu.bme.mit.gamma.xsts.model.ParallelAction
 import hu.bme.mit.gamma.xsts.model.SequentialAction
 import hu.bme.mit.gamma.xsts.model.XSTSModelFactory
+import hu.bme.mit.gamma.xsts.model.XTransition
+import hu.bme.mit.gamma.xsts.util.XstsActionUtil
 import java.util.Collection
 import java.util.List
 
@@ -39,11 +40,29 @@ class ActionOptimizer {
 	public static final ActionOptimizer INSTANCE =  new ActionOptimizer
 	protected new() {}
 	// Auxiliary objects
-	protected final extension ExpressionUtil expressionUtil = ExpressionUtil.INSTANCE
+	protected final extension XstsActionUtil xStsActionUtil = XstsActionUtil.INSTANCE
 	protected final extension GammaEcoreUtil ecoreUtil = GammaEcoreUtil.INSTANCE
 	// Model factories
 	protected final ExpressionModelFactory expressionFactory = ExpressionModelFactory.eINSTANCE
 	protected final extension XSTSModelFactory xStsFactory = XSTSModelFactory.eINSTANCE
+	
+	def optimize(Collection<XTransition> transitions) {
+		val optimizedTransitions = newArrayList
+		for (transition : transitions) {
+			optimizedTransitions += transition.optimize
+		}
+		return optimizedTransitions
+	}
+	
+	def optimize(XTransition transition) {
+		if (transition === null) {
+			return null // Can be null, if. e.g., there are no out-events
+		}
+		val action = transition.action
+		return createXTransition => [
+			it.action = action?.optimize
+		]
+	}
 	
 	def optimize(Action action) {
 		var Action oldXStsAction
@@ -75,14 +94,26 @@ class ActionOptimizer {
 		return action
 	}
 	
-	protected def dispatch Action simplifyCompositeActions(CompositeAction action) {
+	protected def dispatch Action simplifyCompositeActions(LoopAction action) {
+		val xStsSubaction = action.action
+		val simplifiedXStsSubaction = xStsSubaction.simplifyCompositeActions
+		if (simplifiedXStsSubaction instanceof EmptyAction) {
+			return simplifiedXStsSubaction
+		}
+		return action => [ // Parameter and range are still needed
+			it.action = simplifiedXStsSubaction
+		]
+	}
+	
+	protected def dispatch Action simplifyCompositeActions(MultiaryAction action) {
 		var xStsActionList = newLinkedList
 		xStsActionList += action.actions
 		if (xStsActionList.size > 1) {
 			val remainingXStsActions = newLinkedList
 			// Sequence order must be reserved
 			xStsActionList.removeIf[it instanceof EmptyAction || 
-				it instanceof CompositeAction && (it as CompositeAction).actions.empty]
+				it instanceof MultiaryAction && (it as MultiaryAction).actions.forall[it instanceof EmptyAction] ||
+				it instanceof LoopAction && ((it as LoopAction).action === null || (it as LoopAction).action instanceof EmptyAction)]
 			for (xStsSubaction : xStsActionList) {
 				remainingXStsActions += xStsSubaction.simplifyCompositeActions
 			}
@@ -94,7 +125,7 @@ class ActionOptimizer {
 		if (xStsActionList.size == 1) {
 			val xStsSubaction = xStsActionList.head
 			val newXStsAction = xStsSubaction.simplifyCompositeActions
-			if (newXStsAction instanceof CompositeAction) {
+			if (newXStsAction instanceof MultiaryAction) {
 				checkState(newXStsAction.actions.size > 1 && !newXStsAction.actions.exists[it instanceof EmptyAction])
 			}
 			return newXStsAction
@@ -106,7 +137,7 @@ class ActionOptimizer {
 		else {
 			// 1 < Size, even after clearing
 			checkState(xStsActionList.size > 1)
-			val newXStsCompositeAction = create(action.eClass) as CompositeAction
+			val newXStsCompositeAction = create(action.eClass) as MultiaryAction
 			newXStsCompositeAction.actions += xStsActionList
 			checkState(newXStsCompositeAction.actions.size > 1 &&
 				!newXStsCompositeAction.actions.exists[it instanceof EmptyAction])
@@ -130,10 +161,21 @@ class ActionOptimizer {
 		return #[action]
 	}
 	
-	protected def dispatch List<Action> simplifySequentialActions(CompositeAction action, boolean isTop) {
+	protected def dispatch List<Action> simplifySequentialActions(LoopAction action, boolean isTop) {
+		val xStsSubaction = action.action
+		val newXStsSubactions = xStsSubaction.simplifySequentialActions(true)
+		checkState(newXStsSubactions.size == 1)
+		return #[
+			action => [ // Parameter and range are still needed
+				it.action = newXStsSubactions.head
+			]
+		]
+	}
+	
+	protected def dispatch List<Action> simplifySequentialActions(MultiaryAction action, boolean isTop) {
 		val xStsSubactions = newArrayList
 		xStsSubactions += action.actions
-		val newXStsCompositeAction = create(action.eClass) as CompositeAction
+		val newXStsCompositeAction = create(action.eClass) as MultiaryAction
 		for (xStsSubaction : xStsSubactions) {
 			newXStsCompositeAction.actions += xStsSubaction.simplifySequentialActions(true)
 		}
@@ -191,10 +233,21 @@ class ActionOptimizer {
 		return #[action]
 	}
 	
-	protected def dispatch List<Action> simplifyParallelActions(CompositeAction action, boolean isTop) {
+	protected def dispatch List<Action> simplifyParallelActions(LoopAction action, boolean isTop) {
+		val xStsSubaction = action.action
+		val newXStsSubactions = xStsSubaction.simplifyParallelActions(true)
+		checkState(newXStsSubactions.size == 1)
+		return #[
+			action => [ // Parameter and range are still needed
+				it.action = newXStsSubactions.head
+			]
+		]
+	}
+	
+	protected def dispatch List<Action> simplifyParallelActions(MultiaryAction action, boolean isTop) {
 		val xStsSubactions = newArrayList
 		xStsSubactions += action.actions
-		val newXStsCompositeAction = create(action.eClass) as CompositeAction
+		val newXStsCompositeAction = create(action.eClass) as MultiaryAction
 		for (xStsSubaction : xStsSubactions) {
 			newXStsCompositeAction.actions += xStsSubaction.simplifyParallelActions(true)
 		}
@@ -243,10 +296,21 @@ class ActionOptimizer {
 		return #[action]
 	}
 	
-	protected def dispatch List<Action> simplifyOrthogonalActions(CompositeAction action, boolean isTop) {
+	protected def dispatch List<Action> simplifyOrthogonalActions(LoopAction action, boolean isTop) {
+		val xStsSubaction = action.action
+		val newXStsSubactions = xStsSubaction.simplifyOrthogonalActions(true)
+		checkState(newXStsSubactions.size == 1)
+		return #[
+			action => [ // Parameter and range are still needed
+				it.action = newXStsSubactions.head
+			]
+		]
+	}
+	
+	protected def dispatch List<Action> simplifyOrthogonalActions(MultiaryAction action, boolean isTop) {
 		val xStsSubactions = newArrayList
 		xStsSubactions += action.actions
-		val newXStsCompositeAction = create(action.eClass) as CompositeAction
+		val newXStsCompositeAction = create(action.eClass) as MultiaryAction
 		for (xStsSubaction : xStsSubactions) {
 			newXStsCompositeAction.actions += xStsSubaction.simplifyOrthogonalActions(true)
 		}
@@ -295,10 +359,21 @@ class ActionOptimizer {
 		return #[action]
 	}
 	
-	protected def dispatch List<Action> simplifyNonDeterministicActions(CompositeAction action, boolean isTop) {
+	protected def dispatch List<Action> simplifyNonDeterministicActions(LoopAction action, boolean isTop) {
+		val xStsSubaction = action.action
+		val newXStsSubactions = xStsSubaction.simplifyNonDeterministicActions(true)
+		checkState(newXStsSubactions.size == 1)
+		return #[
+			action => [ // Parameter and range are still needed
+				it.action = newXStsSubactions.head
+			]
+		]
+	}
+	
+	protected def dispatch List<Action> simplifyNonDeterministicActions(MultiaryAction action, boolean isTop) {
 		val xStsSubactions = newArrayList
 		xStsSubactions += action.actions
-		val newXStsCompositeAction = create(action.eClass) as CompositeAction
+		val newXStsCompositeAction = create(action.eClass) as MultiaryAction
 		for (xStsSubaction : xStsSubactions) {
 			newXStsCompositeAction.actions += xStsSubaction.simplifyNonDeterministicActions(true)
 		}
@@ -362,10 +437,17 @@ class ActionOptimizer {
 		]
 	}
 	
-	protected def dispatch Action optimizeParallelActions(CompositeAction action) {
+	protected def dispatch Action optimizeParallelActions(LoopAction action) {
+		val xStsSubaction = action.action
+		return action => [ // Parameter and range are still needed
+			it.action = xStsSubaction.optimizeParallelActions
+		]
+	}
+	
+	protected def dispatch Action optimizeParallelActions(MultiaryAction action) {
 		val xStsSubactions = newArrayList
 		xStsSubactions += action.actions
-		return create(action.eClass) as CompositeAction => [
+		return create(action.eClass) as MultiaryAction => [
 			for (xStsSubaction : xStsSubactions) {
 				it.actions += xStsSubaction.optimizeParallelActions
 			}
@@ -407,7 +489,12 @@ class ActionOptimizer {
 		// No op
 	}
 	
-	protected def dispatch void optimizeAssignmentActions(CompositeAction action) {
+	protected def dispatch void optimizeAssignmentActions(LoopAction action) {
+		val xStsSubaction = action.action
+		xStsSubaction.optimizeAssignmentActions
+	}
+	
+	protected def dispatch void optimizeAssignmentActions(MultiaryAction action) {
 		// Recursion
 		for (xStsAction : action.actions) {
 			xStsAction.optimizeAssignmentActions
@@ -420,16 +507,18 @@ class ActionOptimizer {
 		for (var i = 0; i < xStsActions.size; i++) {
 			val xStsFirstAction = xStsActions.get(i)
 			if (xStsFirstAction instanceof AssignmentAction) {
-				val variable = (xStsFirstAction.lhs as DirectReferenceExpression).declaration
+				val lhs = xStsFirstAction.lhs
 				var foundAssignmentToTheSameVariable = false
 				for (var j = i + 1; j < xStsActions.size && !foundAssignmentToTheSameVariable; j++) {
 					val xStsSecondAction = xStsActions.get(j)
 					if (xStsSecondAction instanceof AssignmentAction) {
-						if ((xStsSecondAction.lhs as DirectReferenceExpression).declaration == variable) {
+						if (xStsSecondAction.lhs.helperEquals(lhs)) {
 							foundAssignmentToTheSameVariable = true
 							var isVariableRead = false
 							for (var k = i + 1; k <= j && !isVariableRead; k++) {
 								val xStsInBetweenAction = xStsActions.get(k)
+								val variable = lhs.accessedDeclaration
+								// Not perfect for arrays: a[0] := 1; b := a[2]; a[0] := 2;
 								if (xStsInBetweenAction.readVariables.contains(variable)) {
 									isVariableRead = true
 								}
@@ -481,7 +570,12 @@ class ActionOptimizer {
 		// No op
 	}
 	
-	protected def dispatch void deleteTrivialNonDeterministicActions(CompositeAction action) {
+	protected def dispatch void deleteTrivialNonDeterministicActions(LoopAction action) {
+		val xStsSubaction = action.action
+		xStsSubaction.deleteTrivialNonDeterministicActions
+	}
+	
+	protected def dispatch void deleteTrivialNonDeterministicActions(MultiaryAction action) {
 		val copiedXStsActions = newLinkedList
 		copiedXStsActions += action.actions
 		for (copiedXStsAction : copiedXStsActions) {
@@ -535,7 +629,12 @@ class ActionOptimizer {
 		// No op
 	}
 	
-	protected def dispatch void deleteDefinitelyFalseBranches(CompositeAction action) {
+	protected def dispatch void deleteDefinitelyFalseBranches(LoopAction action) {
+		val xStsSubaction = action.action
+		xStsSubaction.deleteDefinitelyFalseBranches
+	}
+	
+	protected def dispatch void deleteDefinitelyFalseBranches(MultiaryAction action) {
 		for (xStsAction : action.actions) {
 			xStsAction.deleteDefinitelyFalseBranches
 		}
@@ -548,10 +647,7 @@ class ActionOptimizer {
 			val firstAction = branch.firstAtomicAction
 			if (firstAction instanceof AssumeAction) {
 				if (firstAction.isDefinitelyFalseAssumeAction) {
-					val falseAssume = createAssumeAction => [
-						it.assumption = expressionFactory.createFalseExpression
-					]
-					branch.replace(falseAssume)
+					branch.remove
 				}
 				else {
 					branch.deleteDefinitelyFalseBranches

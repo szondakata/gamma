@@ -77,6 +77,7 @@ class ModelUnfolder {
 	
 	private dispatch def void copyComponents(Component component, Package gammaPackage, Trace trace) {
 		// Simple statecharts are already cloned
+		component.removeAnnotations // To prevent importing unnecessary resources into the resource set
 	}
 	
 	private dispatch def void copyComponents(AbstractSynchronousCompositeComponent component,
@@ -87,6 +88,7 @@ class ModelUnfolder {
 			gammaPackage.addDeclarations(clonedPackage)
 			// Declarations have been moved
 			val clonedComponent = clonedPackage.components.findFirst[it.helperEquals(type)] as SynchronousComponent // Sync Composite or Statechart
+			clonedComponent.removeAnnotations // To prevent importing unnecessary resources into the resource set
 			gammaPackage.components += clonedComponent // Adding it to the "Instance container"
 			instance.type = clonedComponent // Setting the type to the new declaration
 			// Changing the port binding
@@ -154,6 +156,13 @@ class ModelUnfolder {
 		}
 		// Tracing
 		type.traceComponentInstances(clonedComponent, trace)
+	}
+	
+		
+	protected def void removeAnnotations(Component component) {
+		if (component instanceof StatechartDefinition) {
+			component.annotation = null
+		}
 	}
 	
 	protected def void fixChannelRequiredPorts(CompositeComponent composite, ComponentInstance instance) {
@@ -332,8 +341,9 @@ class ModelUnfolder {
 	}
 	
 	protected def addDeclarations(Package gammaPackage, Package clonedPackage) {
-		gammaPackage.constantDeclarations += clonedPackage.constantDeclarations
-		gammaPackage.functionDeclarations += clonedPackage.functionDeclarations
+		// As constants and functions can be imported - is the fact that imported packages are not cloned a problem? 
+		gammaPackage.constantDeclarations += clonedPackage.selfAndImports.map[it.constantDeclarations].flatten.toSet
+		gammaPackage.functionDeclarations += clonedPackage.selfAndImports.map[it.functionDeclarations].flatten.toSet
 		// No interface and type declarations as their cloning cause a lot of trouble
 	}
 	

@@ -28,7 +28,6 @@ import org.eclipse.emf.ecore.util.EcoreUtil;
 import hu.bme.mit.gamma.action.derivedfeatures.ActionModelDerivedFeatures;
 import hu.bme.mit.gamma.action.model.Action;
 import hu.bme.mit.gamma.expression.model.ArgumentedElement;
-import hu.bme.mit.gamma.expression.model.DirectReferenceExpression;
 import hu.bme.mit.gamma.expression.model.ElseExpression;
 import hu.bme.mit.gamma.expression.model.Expression;
 import hu.bme.mit.gamma.expression.model.FunctionAccessExpression;
@@ -49,6 +48,7 @@ import hu.bme.mit.gamma.statechart.composite.PortBinding;
 import hu.bme.mit.gamma.statechart.composite.SimpleChannel;
 import hu.bme.mit.gamma.statechart.composite.SynchronousComponent;
 import hu.bme.mit.gamma.statechart.composite.SynchronousComponentInstance;
+import hu.bme.mit.gamma.statechart.contract.AdaptiveContractAnnotation;
 import hu.bme.mit.gamma.statechart.interface_.Component;
 import hu.bme.mit.gamma.statechart.interface_.Event;
 import hu.bme.mit.gamma.statechart.interface_.EventDeclaration;
@@ -79,6 +79,7 @@ import hu.bme.mit.gamma.statechart.statechart.ShallowHistoryState;
 import hu.bme.mit.gamma.statechart.statechart.State;
 import hu.bme.mit.gamma.statechart.statechart.StateAnnotation;
 import hu.bme.mit.gamma.statechart.statechart.StateNode;
+import hu.bme.mit.gamma.statechart.statechart.StatechartAnnotation;
 import hu.bme.mit.gamma.statechart.statechart.StatechartDefinition;
 import hu.bme.mit.gamma.statechart.statechart.TimeoutDeclaration;
 import hu.bme.mit.gamma.statechart.statechart.TimeoutEventReference;
@@ -101,8 +102,8 @@ public class StatechartModelDerivedFeatures extends ActionModelDerivedFeatures {
 		}
 		if (element instanceof FunctionAccessExpression) {
 			FunctionAccessExpression functionAccess = (FunctionAccessExpression) element;
-			DirectReferenceExpression functionDeclarationReference = (DirectReferenceExpression) functionAccess.getOperand();
-			FunctionDeclaration functionDeclaration = (FunctionDeclaration) functionDeclarationReference.getDeclaration();
+			FunctionDeclaration functionDeclaration = (FunctionDeclaration)
+					expressionUtil.getDeclaration(functionAccess.getOperand());
 			return functionDeclaration.getParameterDeclarations();
 		}
 		throw new IllegalArgumentException("Not supported element: " + element);
@@ -167,6 +168,27 @@ public class StatechartModelDerivedFeatures extends ActionModelDerivedFeatures {
 	public static boolean isUnfolded(Package gammaPackage) {
 		return gammaPackage.getAnnotations().stream().anyMatch(
 				it -> it instanceof UnfoldedPackageAnnotation);
+	}
+	
+	public static Set<Package> getSelfAndImports(Package gammaPackage) {
+		Set<Package> imports = new HashSet<Package>();
+		imports.add(gammaPackage);
+		imports.addAll(gammaPackage.getImports());
+		return imports;
+	}
+	
+	public static Set<Package> getAllImports(Package gammaPackage) {
+		Set<Package> imports = new HashSet<Package>();
+		imports.addAll(gammaPackage.getImports());
+		for (Component component : gammaPackage.getComponents()) {
+			for (ComponentInstance componentInstance : getAllInstances(component)) {
+				Component type = getDerivedType(componentInstance);
+				Package referencedPackage = getContainingPackage(type);
+				imports.add(referencedPackage);
+				imports.addAll(referencedPackage.getImports());
+			}
+		}
+		return imports;
 	}
 	
 	public static Set<Component> getAllComponents(Package parentPackage) {
@@ -421,6 +443,11 @@ public class StatechartModelDerivedFeatures extends ActionModelDerivedFeatures {
 	
 	public static boolean isOutputEvent(Port port, Event event) {
 		return getOutputEvents(port).contains(event);
+	}
+	
+	public static Set<Interface> getInterfaces(Component component) {
+		return getAllPorts(component).stream()
+				.map(it -> getInterface(it)).collect(Collectors.toSet());
 	}
 	
 	public static List<Port> getAllPorts(AsynchronousAdapter wrapper) {
@@ -780,6 +807,12 @@ public class StatechartModelDerivedFeatures extends ActionModelDerivedFeatures {
 			return ancestors;
 		}
 		return new ArrayList<hu.bme.mit.gamma.statechart.statechart.State>();
+	}
+	
+	public static List<hu.bme.mit.gamma.statechart.statechart.State> getAncestorsAndSelf(State node) {
+		List<hu.bme.mit.gamma.statechart.statechart.State> ancestors = getAncestors(node);
+		ancestors.add(node);
+		return ancestors;
 	}
 	
 	public static List<Region> getRegionAncestors(StateNode node) {
@@ -1147,6 +1180,15 @@ public class StatechartModelDerivedFeatures extends ActionModelDerivedFeatures {
 		throw new IllegalArgumentException("Not known initial states in the region. " + region.getName() + ": " + entryStates);
 	}
 	
+	public static Transition getInitialTransition(Region region) {
+		EntryState entryState = getEntryState(region);
+		List<Transition> outgoingTransitions = getOutgoingTransitions(entryState);
+		if (outgoingTransitions.size() != 1) {
+			throw new IllegalArgumentException(outgoingTransitions.toString());
+		}
+		return outgoingTransitions.get(0);
+	}
+	
 	public static Set<State> getPrecedingStates(StateNode node) {
 		Set<State> precedingStates = new HashSet<State>();
 		for (Transition incomingTransition : getIncomingTransitions(node)) {
@@ -1194,6 +1236,15 @@ public class StatechartModelDerivedFeatures extends ActionModelDerivedFeatures {
 			}
 		}
 		return time;
+	}
+	
+	public static Component getMonitoredComponent(StatechartDefinition adaptiveContract) {
+		StatechartAnnotation annotation = adaptiveContract.getAnnotation();
+		if (annotation instanceof AdaptiveContractAnnotation) {
+			AdaptiveContractAnnotation adaptiveContractAnnotation = (AdaptiveContractAnnotation) annotation;
+			return adaptiveContractAnnotation.getMonitoredComponent();
+		}
+		throw new IllegalArgumentException("Not an adaptive contract statechart: " + adaptiveContract);
 	}
 	
 	public static Collection<ComponentInstance> getReferencingComponentInstances(Component component) {
