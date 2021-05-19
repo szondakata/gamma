@@ -1,8 +1,8 @@
 Manifest-Version: 1.0
 Automatic-Module-Name: hu.bme.mit.gamma.invariants.language
 Bundle-ManifestVersion: 2
-Bundle-Name: hu.bme.mit.gamma.invariants.language
-Bundle-Vendor: My Company
+Bundle-Name: Gamma Invariants Language
+Bundle-Vendor: BME-FTSRG
 Bundle-Version: 1.0.0.qualifier
 Bundle-SymbolicName: hu.bme.mit.gamma.invariants.language; singleton:=true
 Bundle-ActivationPolicy: lazy
@@ -10,6 +10,10 @@ Require-Bundle: hu.bme.mit.gamma.invariants.model,
  org.eclipse.xtext,
  org.eclipse.xtext.xbase,
  org.eclipse.equinox.common;bundle-version="3.5.0",
+ hu.bme.mit.gamma.expression.language,
+ hu.bme.mit.gamma.action.language,
+ hu.bme.mit.gamma.statechart.language,
+ hu.bme.mit.gamma.language.util,
  org.eclipse.xtext.xbase.lib;bundle-version="2.14.0",
  org.eclipse.xtext.util,
  org.antlr.runtime;bundle-version="[3.2.0,3.2.1)"
