@@ -8,6 +8,7 @@
  *
  * SPDX-License-Identifier: EPL-1.0
  ********************************************************************************/
+
 module hu.bme.mit.gamma.setup.cleaners.languages.CleanPropertyLanguage
 
 import org.eclipse.xtext.xtext.generator.*
