@@ -8,13 +8,12 @@ Bundle-ClassPath: .
 Bundle-Vendor: BME-FTSRG
 Bundle-Localization: plugin
 Bundle-RequiredExecutionEnvironment: JavaSE-11
-Export-Package: hu.bme.mit.gamma.invariants.model,
- hu.bme.mit.gamma.invariants.model.impl,
- hu.bme.mit.gamma.invariants.model.util,
- hu.bme.mit.gamma.invariants.util
 Require-Bundle: org.eclipse.core.runtime,
  org.eclipse.emf.ecore;visibility:=reexport,
  hu.bme.mit.gamma.expression.model;visibility:=reexport,
  hu.bme.mit.gamma.action.model;visibility:=reexport,
  hu.bme.mit.gamma.statechart.model;visibility:=reexport
 Bundle-ActivationPolicy: lazy
+Export-Package: hu.bme.mit.gamma.invariants.invariants,
+ hu.bme.mit.gamma.invariants.invariants.impl,
+ hu.bme.mit.gamma.invariants.invariants.util

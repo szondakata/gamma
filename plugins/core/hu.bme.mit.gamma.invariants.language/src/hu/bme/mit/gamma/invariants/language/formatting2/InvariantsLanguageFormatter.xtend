@@ -6,9 +6,14 @@ package hu.bme.mit.gamma.invariants.language.formatting2
 import com.google.inject.Inject
 import hu.bme.mit.gamma.invariants.language.services.InvariantsLanguageGrammarAccess
 import org.eclipse.xtext.formatting2.AbstractFormatter2
+import org.eclipse.xtext.formatting2.IFormattableDocument
 
 class InvariantsLanguageFormatter extends AbstractFormatter2 {
 	
 	@Inject extension InvariantsLanguageGrammarAccess
+	
+	override format(Object obj, IFormattableDocument document) {
+		throw new UnsupportedOperationException("TODO: auto-generated method stub")
+	}
 	
 }
